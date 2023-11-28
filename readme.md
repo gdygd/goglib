@@ -40,15 +40,15 @@ func main() {
 	Applog.Fileclose()
 }
   ```
-- output:
+- output
   ```
-PRINT  : [process1]2023/11/28 13:34:50.234569 Debug #2  
-PRINT  : [process1]2023/11/28 13:34:50.234617 Debug #1  
-ALWAYS : [process1]2023/11/28 13:34:50.234641 Debug Always  
-WARN   : [process1]2023/11/28 13:34:50.234665 Debug Warn  
-ERROR  : [process1]2023/11/28 13:34:50.234693 Debug Err  
-DUMP   : [process1]2023/11/28 13:34:50.234775   rawdata  [41]  
-         31 32 33 31 32 33 31 32 33 61 62 63 64 31 32 33 31 32 33 31  
-         32 61 73 64 66 61 73 64 66 61 6F 73 64 66 68 61 73 6B 64 6A  
-         66  
+    PRINT  : [process1]2023/11/28 13:34:50.234569 Debug #2  
+    PRINT  : [process1]2023/11/28 13:34:50.234617 Debug #1  
+    ALWAYS : [process1]2023/11/28 13:34:50.234641 Debug Always  
+    WARN   : [process1]2023/11/28 13:34:50.234665 Debug Warn  
+    ERROR  : [process1]2023/11/28 13:34:50.234693 Debug Err  
+    DUMP   : [process1]2023/11/28 13:34:50.234775   rawdata  [41]  
+            31 32 33 31 32 33 31 32 33 61 62 63 64 31 32 33 31 32 33 31  
+            32 61 73 64 66 61 73 64 66 61 6F 73 64 66 68 61 73 6B 64 6A  
+            66  
   ```
