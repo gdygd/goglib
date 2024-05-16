@@ -14,6 +14,13 @@ var rwMSSeSession = new(sync.RWMutex) // read, write vds session mutex
 var sseMsgMTX = &sync.Mutex{} // sse message mutex
 
 // ---------------------------------------------------------------------------
+// SessionObj
+// ---------------------------------------------------------------------------
+type SessionObj struct {
+	Key int
+}
+
+// ---------------------------------------------------------------------------
 // SSE session key list
 // ---------------------------------------------------------------------------
 var sseSessionKeyList []SessionObj = makeSSeSessionKey()
