@@ -103,6 +103,7 @@ func (p *Process) IsExist() bool {
 // Kill
 // ------------------------------------------------------------------------------
 func (p *Process) Kill() bool {
+	// for linux process
 
 	var ok bool = false
 
@@ -121,6 +122,44 @@ func (p *Process) Kill() bool {
 	}
 
 	return (ok)
+}
+
+// ------------------------------------------------------------------------------
+// Kill2
+// ------------------------------------------------------------------------------
+func (p *Process) Kill2(id int) bool {
+	// for windows process
+	var ok bool = false
+
+	log.Println("Kill...(1)")
+	process, err := os.FindProcess(id)
+	if err != nil {
+		return false
+	}
+
+	err = process.Kill()
+	// err = process.Signal(syscall.SIGTERM)
+	//err = process.Signal(syscall.SIGINT)
+	log.Println("Kill...(2)")
+
+	if err != nil {
+		log.Println("Kill...(3) err:", err)
+		log.Println("kill err : ", err)
+		return true
+	} else {
+		log.Println("Kill...(4)")
+		err1 := process.Kill()
+		//err1 := process.Signal(syscall.SIGTERM)
+		//err1 := process.Signal(syscall.SIGINT)
+		if err1 == nil {
+			ok = true
+		}
+		log.Println("Kill...(5)")
+	}
+	log.Println("Kill...(6)")
+
+	return (ok)
+
 }
 
 // ------------------------------------------------------------------------------

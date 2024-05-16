@@ -1,0 +1,219 @@
+package serial
+
+import (
+	"fmt"
+	"log"
+	"syscall"
+)
+
+type winport struct {
+	handle      syscall.Handle
+	oldDCB      c_DCB
+	oldTimeouts c_COMMTIMEOUTS
+}
+
+// New allocates and returns a new serial port controller.
+func NewWinPort() Port {
+	log.Println("New..")
+	return &winport{
+		handle: syscall.InvalidHandle,
+	}
+}
+
+// Open connects to the given serial port.
+func (p *winport) Open(c *Config) error {
+	log.Println("Open..(1)")
+	var err error = nil
+	p.handle, err = newHandle(c)
+	log.Println("Open..(2)")
+
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err != nil {
+			syscall.CloseHandle(p.handle)
+			p.handle = syscall.InvalidHandle
+		}
+	}()
+	log.Println("Open..(3)")
+
+	err = p.setSerialConfig(c)
+	if err != nil {
+		return err
+	}
+	log.Println("Open..(4)")
+	//err = p.setTimeouts(c)
+	log.Println("Open..(5)")
+	return err
+
+}
+
+func (p *winport) Close() (err error) {
+	log.Println("Close (1)")
+	if p.handle == syscall.InvalidHandle {
+		return
+	}
+	log.Println("Close (2)")
+	err1 := SetCommTimeouts(p.handle, &p.oldTimeouts)
+	log.Println("Close (3)")
+	err2 := SetCommState(p.handle, &p.oldDCB)
+	log.Println("Close (4)")
+	err = syscall.CloseHandle(p.handle)
+	log.Println("Close (5)")
+	if err == nil {
+		if err1 == nil {
+			err = err2
+		} else {
+			err = err1
+		}
+	}
+	log.Println("Close (6)")
+	p.handle = syscall.InvalidHandle
+	log.Println("Close (7)")
+	return
+}
+
+// Read reads from serial port.
+// It is blocked until data received or timeout after p.timeout.
+func (p *winport) Read2(b []byte) (n int, err error) {
+	log.Println("read #1")
+	var done uint32
+	if err = syscall.ReadFile(p.handle, b, &done, nil); err != nil {
+		log.Println("read err")
+		return
+	}
+	if done == 0 {
+		err = ErrTimeout
+		log.Println("read timeout..")
+		return
+	}
+	log.Println("read ok")
+	n = int(done)
+	return
+}
+
+// Read reads from serial port.
+// It is blocked until data received or timeout after p.timeout.
+func (p *winport) Read(b []byte) (n int, err error) {
+
+	log.Println("read #1")
+	readcnt, err := syscall.Read(p.handle, b)
+	n = readcnt
+	if err != nil {
+		log.Println("read err:", err)
+		return
+	}
+
+	log.Println("read ok")
+	return
+}
+
+// Write writes data to the serial port.
+func (p *winport) Write(b []byte) (n int, err error) {
+	var done uint32
+	log.Println("Write..(1)")
+	err = syscall.WriteFile(p.handle, b, &done, nil)
+	if err != nil {
+		log.Println("Write..fail.. err:", err)
+		return
+	}
+	log.Println("Write..(3) err:", err)
+	n = int(done)
+	return
+}
+
+func (p *winport) setTimeouts(c *Config) error {
+	var timeouts c_COMMTIMEOUTS
+	// Read and write timeout
+	if c.Timeout > 0 {
+		timeout := toDWORD(int(c.Timeout.Nanoseconds() / 1e6))
+		// wait until a byte arrived or time out
+		timeouts.ReadIntervalTimeout = c_MAXDWORD
+		timeouts.ReadTotalTimeoutMultiplier = c_MAXDWORD
+		timeouts.ReadTotalTimeoutConstant = timeout
+		timeouts.WriteTotalTimeoutConstant = timeout
+	}
+	err := GetCommTimeouts(p.handle, &p.oldTimeouts)
+	if err != nil {
+		return err
+	}
+	err = SetCommTimeouts(p.handle, &timeouts)
+	if err != nil {
+		// reset
+		SetCommTimeouts(p.handle, &p.oldTimeouts)
+	}
+	return err
+}
+
+func (p *winport) setSerialConfig(c *Config) error {
+	log.Println("setSerialConfig(1)")
+	var dcb c_DCB
+	if c.BaudRate == 0 {
+		dcb.BaudRate = 19200
+	} else {
+		dcb.BaudRate = toDWORD(c.BaudRate)
+	}
+	log.Println("setSerialConfig(2)")
+	// Data bits
+	if c.DataBits == 0 {
+		dcb.ByteSize = 8
+	} else {
+		dcb.ByteSize = toBYTE(c.DataBits)
+	}
+	log.Println("setSerialConfig(3)")
+	// Stop bits
+	switch c.StopBits {
+	case 0, 1:
+		// Default is one stop bit.
+		dcb.StopBits = c_ONESTOPBIT
+	case 2:
+		dcb.StopBits = c_TWOSTOPBITS
+	default:
+		return fmt.Errorf("serial: unsupported stop bits %v", c.StopBits)
+	}
+	log.Println("setSerialConfig(4)")
+	// Parity
+	switch c.Parity {
+	case "", "E":
+		// Default parity mode is Even.
+		dcb.Parity = c_EVENPARITY
+		dcb.Pad_cgo_0[0] |= 0x02 // fParity
+	case "O":
+		dcb.Parity = c_ODDPARITY
+		dcb.Pad_cgo_0[0] |= 0x02 // fParity
+	case "N":
+		dcb.Parity = c_NOPARITY
+	default:
+		return fmt.Errorf("serial: unsupported parity %v", c.Parity)
+	}
+	log.Println("setSerialConfig(5)")
+	dcb.Pad_cgo_0[0] |= 0x01 // fBinary
+
+	err := GetCommState(p.handle, &p.oldDCB)
+	log.Println("setSerialConfig(6)")
+	if err != nil {
+		return err
+	}
+	log.Println("setSerialConfig(7) err:", err)
+	err = SetCommState(p.handle, &dcb)
+	if err != nil {
+		SetCommState(p.handle, &p.oldDCB)
+	}
+	log.Println("setSerialConfig(8) err:", err)
+	return err
+}
+
+func newHandle(c *Config) (handle syscall.Handle, err error) {
+	uptr, _ := syscall.UTF16PtrFromString(c.Address)
+	handle, err = syscall.CreateFile(
+		//syscall.StringToUTF16Ptr(c.Address),
+		uptr,
+		syscall.GENERIC_READ|syscall.GENERIC_WRITE,
+		0,                     // mode
+		nil,                   // security
+		syscall.OPEN_EXISTING, // create mode
+		0,                     // attributes
+		0)                     // templates
+	return
+}
