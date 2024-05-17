@@ -112,3 +112,152 @@ func main() {
 
 
 ```
+
+#### SSE (Server Send Event) management
+```
+*example
+
+package main
+
+import (
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"time"
+
+	"github.com/gorilla/mux"
+	"gitlab.com/theroadlib/goglib"
+)
+
+var Applog *goglib.OLog2 = goglib.InitLogEnv("./log", "test", 0)
+
+func sendSse(data goglib.EventData) {
+
+	for _, actSession := range goglib.ActivesseSessionList {
+		goglib.CheckSSEMsgChannel(actSession.Key)
+
+		goglib.SseMsgChan[actSession.Key] <- data
+	}
+}
+
+// ------------------------------------------------------------------------------
+// processEventMsg
+// ------------------------------------------------------------------------------
+func ProcessEventMsg() {
+
+	for {
+		select {
+		case event := <-goglib.ChEvent:
+			Applog.Print(1, "Get Event message [%s]", event.Msgtype)
+
+			if len(event.Msgtype) > 0 {
+				msg := &event
+				sendSse(*msg)
+			} else {
+				Applog.Error("undefined sse..[%s](%d)", event.Msgtype, event.Id)
+			}
+
+		}
+	}
+}
+
+// ------------------------------------------------------------------------------
+// handleSSE
+// ------------------------------------------------------------------------------
+func handleSSE() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+
+		// get sse session key
+		sessionKey := goglib.GetSSeSessionKey()
+		defer func() {
+			Applog.Print(3, "Close sse.. [%d]", sessionKey)
+			goglib.ClearSSeSessionKey(sessionKey)
+		}()
+
+		if sessionKey == 0 {
+			// invalid key...
+			Applog.Error("Access handleSSE invalid key.. [%d]", sessionKey)
+			<-r.Context().Done()
+			return
+		}
+
+		// prepare the header
+		w.Header().Set("Content-Type", "text/event-stream")
+		w.Header().Set("Cache-Control", "no-cache")
+		w.Header().Set("Connection", "keep-alive")
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+
+		// prepare the flusher
+		flusher, _ := w.(http.Flusher)
+
+		// trap the request under loop forever
+		for {
+			select {
+
+			case <-r.Context().Done():
+				return
+			default:
+				sseMsg, ok := goglib.PopSSEMsgChannel(sessionKey)
+				if ok {
+					btData := sseMsg.PrepareMessage()
+					//am.Applog.Print(2, "PRepareMessage : %v", string(btData[:]))
+					fmt.Fprintf(w, "%s\n", btData)
+
+					flusher.Flush()
+				}
+			}
+			time.Sleep(time.Millisecond * 5)
+		}
+	}
+}
+
+func makeSseMessage() {
+
+	// send sse
+
+	for {
+		type UserInfo struct {
+			Name string
+			Age  int
+		}
+		var Info UserInfo
+		Info.Age = 1
+		Info.Name = "Hello"
+
+		b, _ := json.Marshal(Info)
+		var evdata goglib.EventData = goglib.EventData{}
+		evdata.Msgtype = "message_type"
+		evdata.Data = string(b)
+		evdata.Id = "1"
+
+		goglib.SendSSE(evdata)
+
+		time.Sleep(time.Second * 2)
+	}
+}
+
+// ------------------------------------------------------------------------------
+// GetHelloWorld, get
+// ------------------------------------------------------------------------------
+func GetHelloWorld(w http.ResponseWriter, r *http.Request) {
+
+	json.NewEncoder(w).Encode(string("hello world"))
+}
+
+func main() {
+
+	r := mux.NewRouter()
+
+	r.HandleFunc("/hello", GetHelloWorld).Methods("GET")
+	r.HandleFunc("/sse", handleSSE())
+
+	// sse msg routine
+	go ProcessEventMsg()
+	go makeSseMessage()
+
+	http.ListenAndServe(":5000", r)
+}
+
+
+
+```
