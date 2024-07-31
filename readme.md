@@ -4,7 +4,7 @@
 2. it includes sse(server send event), svg parser, 
 3. it includes serial library, 
 
-#### Byte ordering
+#### 1)Byte ordering
 - **func GetNumber(src []byte, pos int, length int, endian int) int**
 ```
 A function that reads in Big Endian or Little Endian
@@ -41,7 +41,7 @@ info => [0,2,0,0,0,0,0,0,0,0]
 
 ```
 
-#### Time management
+#### 2)Time management
 - **func CheckElapsedTime(timer *time.Time, msDuration int) bool**
 ```
 A function that reads in Big Endian or Little Endian
@@ -58,9 +58,9 @@ sendtime := time.Now()
 isElapsed := CheckElapsedTime(&sendtime, CONNECT_INTERVAL)
 ```
 
-#### Thread management
-```
-*example
+#### 3)Thread management
+ - example
+```go
 
 package main
 
@@ -68,7 +68,7 @@ import (
 	"log"
 	"time"
 
-	"gitlab.com/theroadlib/goglib"
+	"github.com/gdygd/goglib"
 )
 
 var thrfunc *goglib.Thread = nil // msg process thread
@@ -113,9 +113,9 @@ func main() {
 
 ```
 
-#### SSE (Server Send Event) management
-```
-*example
+#### 4)SSE (Server Send Event) management
+ - example
+```go
 
 package main
 
@@ -126,7 +126,7 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
-	"gitlab.com/theroadlib/goglib"
+	"github.com/gdygd/goglib"
 )
 
 var Applog *goglib.OLog2 = goglib.InitLogEnv("./log", "test", 0)
