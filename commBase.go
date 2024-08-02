@@ -60,6 +60,23 @@ func SetNumberU(buf []byte, pos int, value uint32, length int, endian int) {
 	}
 }
 
+func SetNumber64(buf []byte, pos int, value int64, length int, endian int) {
+	switch endian {
+	case ED_BIG:
+		for idx := pos + length - 1; idx >= pos; idx-- {
+			buf[idx] = byte(value % 256)
+			value /= 256
+		}
+		break
+	case ED_LITTLE:
+		for idx := pos; idx < pos+length; idx++ {
+			buf[idx] = byte(value % 256)
+			value /= 256
+		}
+		break
+	}
+}
+
 func GenLRC(buf []byte, pos int, lastIdx int) byte {
 	var lrc byte = 0
 	for idx := pos; idx < lastIdx; idx++ {
