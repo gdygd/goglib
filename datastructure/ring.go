@@ -31,7 +31,7 @@ func (r *Ring) Move(pos int) {
 		r.head = (r.head + pos) % r.size
 	} else {
 		pos2 := pos % (r.size * -1)
-		r.head = r.head + pos2 + r.size
+		r.head = (r.head + pos2 + r.size) % r.size
 	}
 }
 
