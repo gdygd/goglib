@@ -1,32 +1,32 @@
 package datastructure
 
-type Ring struct {
-	data []int
+type Ring[T any] struct {
+	data []T
 	size int
 	head int
 }
 
-func NewRing(size int) *Ring {
-	return &Ring{
-		data: make([]int, size),
+func NewRing[T any](size int) *Ring[T] {
+	return &Ring[T]{
+		data: make([]T, size),
 		size: size,
 		head: 0,
 	}
 }
 
-func (r *Ring) Add(value int) {
+func (r *Ring[T]) Add(value T) {
 	r.data[r.head] = value
 	r.head = (r.head + 1) % r.size
 }
 
-func (r *Ring) Get(index int) int {
+func (r *Ring[T]) Get(index int) T {
 	if index < 0 || index >= r.size {
 		panic("index out of range")
 	}
 	return r.data[(r.head+index)%r.size]
 }
 
-func (r *Ring) Move(pos int) {
+func (r *Ring[T]) Move(pos int) {
 	if r.head+pos > 0 {
 		r.head = (r.head + pos) % r.size
 	} else {
@@ -36,8 +36,8 @@ func (r *Ring) Move(pos int) {
 }
 
 // func main() {
-// 	ring1 := NewRing(7)
-// 	ring2 := NewRing(7)
+// 	var ring1 *Ring[int] = NewRing[int](7)
+// 	var ring2 *Ring[int] = NewRing[int](7)
 
 // 	for i := 1; i <= 7; i++ {
 // 		ring1.Add(i)
@@ -48,8 +48,8 @@ func (r *Ring) Move(pos int) {
 // 		fmt.Printf("Element at %d: %d\n", i, ring1.Get(i))
 // 	}
 
-// 	ring1.Move(2)
-// 	ring2.Move(0)
+// 	ring1.Move(21)
+// 	ring2.Move(-20)
 // 	fmt.Printf("head:(%d, %d) \n", ring1.head, ring2.head)
 // 	for i := 0; i < ring1.size; i++ {
 // 		fmt.Printf("Ring1 Element at %d: %d\n", i, ring1.Get(i))
