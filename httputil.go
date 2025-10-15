@@ -10,6 +10,13 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+var httpClient = &http.Client{Transport: &http.Transport{
+	TLSClientConfig: &tls.Config{
+		InsecureSkipVerify: true,
+	},
+	DisableKeepAlives: false,
+}}
+
 func HttpRequest(ctx *gin.Context, payload []byte, method string, url string) (int, []byte, error) {
 
 	// req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBuffer(payload))
@@ -29,15 +36,15 @@ func HttpRequest(ctx *gin.Context, payload []byte, method string, url string) (i
 
 	req.Header.Set("Content-Type", "application/json")
 
-	var client *http.Client
-	client = &http.Client{Transport: &http.Transport{
-		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: true,
-		},
-		DisableKeepAlives: false,
-	}}
+	// var client *http.Client
+	// client = &http.Client{Transport: &http.Transport{
+	// 	TLSClientConfig: &tls.Config{
+	// 		InsecureSkipVerify: true,
+	// 	},
+	// 	DisableKeepAlives: false,
+	// }}
 
-	resp, err := client.Do(req)
+	resp, err := httpClient.Do(req)
 	if err != nil {
 		return http.StatusNotFound, nil, fmt.Errorf("Http Request 호출 실패: %w", err)
 	}
