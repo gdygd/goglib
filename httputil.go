@@ -10,14 +10,14 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func HttpRequest(ctx *gin.Context, payload []byte, method string, baseurl string) ([]byte, error, int) {
+func HttpRequest(ctx *gin.Context, payload []byte, method string, baseurl string) (int, []byte, error) {
 	url := fmt.Sprintf("%s/saga/order", baseurl)
 
 	// req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBuffer(payload))
-	req, err := http.NewRequest(method, url, bytes.NewBuffer(payload))
+	req, err := http.NewRequestWithContext(ctx, method, url, bytes.NewBuffer(payload))
 	if err != nil {
 
-		return nil, err, http.StatusNotFound
+		return http.StatusNotFound, nil, err
 	}
 
 	// 헤더 복사 (JWT, Trace-Id, Correlation-Id 등)
@@ -35,23 +35,23 @@ func HttpRequest(ctx *gin.Context, payload []byte, method string, baseurl string
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: true,
 		},
-		DisableKeepAlives: true,
+		DisableKeepAlives: false,
 	}}
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("Http Request 호출 실패: %w", err), http.StatusNotFound
+		return http.StatusNotFound, nil, fmt.Errorf("Http Request 호출 실패: %w", err)
 	}
 	defer resp.Body.Close()
 
 	rBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, err, resp.StatusCode
+		return resp.StatusCode, nil, err
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return rBody, fmt.Errorf("saga request fail.. [%d]: %s", resp.StatusCode, string(rBody)), resp.StatusCode
+		return resp.StatusCode, rBody, fmt.Errorf("saga request fail.. [%d]: %s", resp.StatusCode, string(rBody))
 	}
 
-	return rBody, nil, resp.StatusCode
+	return resp.StatusCode, rBody, nil
 }
