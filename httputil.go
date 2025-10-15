@@ -10,8 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func HttpRequest(ctx *gin.Context, payload []byte, method string, baseurl string) (int, []byte, error) {
-	url := fmt.Sprintf("%s/saga/order", baseurl)
+func HttpRequest(ctx *gin.Context, payload []byte, method string, url string) (int, []byte, error) {
 
 	// req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBuffer(payload))
 	req, err := http.NewRequestWithContext(ctx, method, url, bytes.NewBuffer(payload))
