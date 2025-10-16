@@ -2,12 +2,11 @@ package goglib
 
 import (
 	"bytes"
+	"context"
 	"crypto/tls"
 	"fmt"
 	"io"
 	"net/http"
-
-	"github.com/gin-gonic/gin"
 )
 
 var httpClient = &http.Client{Transport: &http.Transport{
@@ -17,17 +16,15 @@ var httpClient = &http.Client{Transport: &http.Transport{
 	DisableKeepAlives: false,
 }}
 
-func HttpRequest(ctx *gin.Context, payload []byte, method string, url string) (int, []byte, error) {
-
+func HttpRequest(ctx context.Context, header http.Header, payload []byte, method string, url string) (int, []byte, error) {
 	// req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBuffer(payload))
 	req, err := http.NewRequestWithContext(ctx, method, url, bytes.NewBuffer(payload))
 	if err != nil {
-
 		return http.StatusNotFound, nil, err
 	}
 
-	// 헤더 복사 (JWT, Trace-Id, Correlation-Id 등)
-	for key, values := range ctx.Request.Header {
+	// 헤더 복사
+	for key, values := range header {
 		for _, v := range values {
 			// logger.Log.Print(2, "header key : %v, value : %v", key, v)
 			req.Header.Add(key, v)
@@ -35,14 +32,6 @@ func HttpRequest(ctx *gin.Context, payload []byte, method string, url string) (i
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-
-	// var client *http.Client
-	// client = &http.Client{Transport: &http.Transport{
-	// 	TLSClientConfig: &tls.Config{
-	// 		InsecureSkipVerify: true,
-	// 	},
-	// 	DisableKeepAlives: false,
-	// }}
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
